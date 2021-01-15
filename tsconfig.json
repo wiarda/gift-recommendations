@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "lib": [
+            "es2020",
+            "dom"
+        ],
+    },
+    "include": [
+        "/**/*",
+        "node_modules/@types/puppeteer/index.d.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+}
