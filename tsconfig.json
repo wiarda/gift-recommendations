@@ -5,6 +5,8 @@
             "es2020",
             "dom"
         ],
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true
     },
     "include": [
         "/**/*",
@@ -13,6 +15,4 @@
     "exclude": [
         "node_modules"
     ],
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
 }
