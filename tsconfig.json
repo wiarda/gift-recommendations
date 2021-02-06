@@ -6,7 +6,10 @@
             "dom"
         ],
         "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "typeRoots": ["./node_modules/@types"],
+        "outDir": "./app",
+        "sourceMap": true
     },
     "include": [
         "/**/*",
