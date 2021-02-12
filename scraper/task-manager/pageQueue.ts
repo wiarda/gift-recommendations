@@ -1,10 +1,14 @@
 import { Page, LaunchOptions, Browser } from "puppeteer";
-import { invoker, head } from 'ramda';
-import { PageRef, PageQueue } from "./types";
-import { browser as createBrowser, addPage } from "../puppeteer/browser";
+import { PageQueue } from "./types";
+import {
+  browser as createBrowser,
+  addPage,
+  configurePage,
+} from "../puppeteer/browser";
+import { firstTab } from "../puppeteer/index";
 
 // fix-sized queue that cycles around an array
-export function Queue(size: number = 20) {
+function Queue(size: number = 20) {
   this.queue = new Array(size);
   this.size = size;
   this.count = 0;
@@ -42,7 +46,7 @@ export function PageQueue(
   if (!browser) browser = createBrowser(browserOptions || {});
 
   // browser intializes with one page
-  const firstPage = browser.then(invoker("targets")).then(head);
+  const firstPage = browser.then(firstTab).then(configurePage);
   pageQueue.enqueue(firstPage);
 
   for (let i = 1; i < size; ++i) {
@@ -51,3 +55,16 @@ export function PageQueue(
 
   return pageQueue;
 }
+
+export const wait: (duration: number) => Promise<void> = (duration) =>
+  new Promise((res) => {
+    setTimeout(res, duration);
+  });
+
+export const checkin: (
+  page: Promise<Page>,
+  queue: PageQueue
+) => (x: unknown) => unknown = (page, pageQueue) => (x) => {
+  pageQueue.enqueue(page);
+  return x;
+};
