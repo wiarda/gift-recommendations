@@ -12,12 +12,19 @@ export function FsDb(path: string): Db {
   };
 
   return {
-    write: (input: string, streamName: string) => {
+    write: (input: Array<string | object>, streamName: string) => {
       if (typeof streamName !== "string") streamName = "default";
-      getStream(streamName).write(`${input}\n`);
+      const stream = getStream(streamName);
+
+      input.forEach((x) => {
+        if (typeof x !== "string") {
+          x = JSON.stringify(x);
+        }
+        stream.write(`${x}\n`);
+      });
     },
     export: (output: string, outputFilename: string) => {
-      writeFile(path, outputFilename, output);
+      writeFile(`${path}/html`, outputFilename, output);
       return output;
     },
   };
