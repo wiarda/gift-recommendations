@@ -5,7 +5,6 @@ import {
   normalizeProductLink,
   invoke,
   fromStrategy,
-  select,
   $prop,
   $text,
   $html,
@@ -43,7 +42,7 @@ export const amazonProductStrategy: Strategy<Product> = {
     $text("span.a-price-fraction"),
   ]),
   link: compose(
-    flip(normalizeProductLink)("https://https://www.amazon.com/"),
+    flip(normalizeProductLink)("https://www.amazon.com"),
     $prop("a", "href")
   ),
   thumbnail: $prop("img", "src"),
