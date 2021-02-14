@@ -12,7 +12,7 @@ import {
 } from "ramda";
 import { Product, scrapeProducts } from "../strategies/amazon/products";
 import { scrapeReviews, Review } from "../strategies/amazon/reviews";
-import { page } from "../puppeteer/index";
+import { page, chrome } from "../puppeteer/index";
 import { ScrapeState } from "../puppeteer/state";
 import { FsDb } from "../db/fsDb";
 import {
@@ -91,7 +91,7 @@ function getReviews(
 
 async function getProductReviews(keyword: string): Promise<ProductReviews[]> {
   const reqs: Promise<ProductReviews>[] = [];
-  const queue = PageQueue(10);
+  const queue = PageQueue(10, chrome);
 
   // get reviews for each product
   const products = await getProductListings(keyword, page);
