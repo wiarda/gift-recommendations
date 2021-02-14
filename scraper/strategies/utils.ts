@@ -55,7 +55,7 @@ export const normalizeText: (string) => string = (input) => {
 };
 
 export const numberOrNA = (input: any): number | "NA" => {
-  const ans = parseFloat(input);
+  const ans = normalizeNumber(input);
   return isNaN(ans) ? "NA" : ans;
 };
 
@@ -78,4 +78,8 @@ export const normalizeProductLink = (
   if (link.charAt(0) === "/") link = domain + link;
 
   return link;
+};
+
+export const normalizeNumber: (x: string) => number = (x) => {
+  return parseFloat(x.replace(/[,a-zA-Z]/g, ""));
 };
