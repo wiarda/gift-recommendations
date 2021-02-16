@@ -1,3 +1,4 @@
+import { prop, compose, path } from "ramda";
 import { Page } from "puppeteer";
 import { RunStrategy } from "../scraper";
 import {
@@ -6,8 +7,8 @@ import {
   PageAction,
   State,
   ViewportConfig,
+  Loop,
 } from "./state";
-import { unary, compose } from "ramda";
 
 export const lift: (
   state: ScrapeState
@@ -17,8 +18,13 @@ export const click: PageEffect<ScrapeState, string> = (selector) => async ([
   page,
   results,
 ]) => {
-  await page.click(selector);
-  return [page, results];
+  try {
+    await page.click(selector);
+    return [page, results];
+  } catch (err) {
+    // Can't find node to click
+    return [page, results];
+  }
 };
 
 /**
@@ -66,7 +72,7 @@ export const saveHtml: PageEffect<ScrapeState, string> = (
   return [page, state];
 };
 
-export const content: PageAction<ScrapeState> = async ([page, results]) => {
+export const content: PageAction = async ([page, results]) => {
   results.store.push(await page.content());
   return [page, results];
 };
@@ -93,16 +99,23 @@ export const waitForTimeout: PageEffect<ScrapeState, number> = (
   return [page, results];
 };
 
-export const waitForDom: PageAction<ScrapeState> = async ([page, results]) => {
+export const waitForRandTimeout: PageEffect<ScrapeState, number> = (
+  low,
+  high
+) => async ([page, results]) => {
+  const duration = low + Math.floor(Math.random() * (high - low + 1));
+  console.log({ duration });
+  await page.waitForTimeout(duration);
+  return [page, results];
+};
+
+export const waitForDom: PageAction = async ([page, results]) => {
   // await page.waitForNavigation({ waitUntil: "domcontentloaded" });
   await page.waitForNavigation({ waitUntil: "load" });
   return [page, results];
 };
 
-export const waitForNetworkIdle: PageAction<ScrapeState> = async ([
-  page,
-  results,
-]) => {
+export const waitForNetworkIdle: PageAction = async ([page, results]) => {
   await page.waitForNavigation({ waitUntil: "networkidle2" });
   return [page, results];
 };
@@ -115,9 +128,9 @@ export const tag: PageEffect<ScrapeState, string> = (label) => async ([
   return [page, results];
 };
 
-export const extractWithStrategy: (
-  strategy: RunStrategy<any>
-) => PageAction<ScrapeState> = (strategy) => async ([page, results]) => {
+export const extractWithStrategy: (strategy: RunStrategy<any>) => PageAction = (
+  strategy
+) => async ([page, results]) => {
   const html = await page.content();
   const url = await page.url();
 
@@ -143,4 +156,27 @@ export const returnA: (x: State<Page, ScrapeState>) => Array<unknown> = ([
   state,
 ]) => {
   return state.curr;
+};
+
+export const returnStore: (
+  x: State<Page, ScrapeState>
+) => Array<unknown> = compose(path([1, "store"]));
+
+export const testContent: (
+  fn: (x: string) => boolean
+) => (x: State<Page, ScrapeState>) => Promise<boolean> = (fn) => async ([
+  page,
+  state,
+]) => {
+  const html = await page.content();
+
+  return fn(html);
+};
+
+export const loop: Loop<ScrapeState> = (condition, next) => async (ctx) => {
+  if (await condition(ctx)) {
+    return Promise.resolve(ctx).then(next).then(loop(condition, next));
+  }
+
+  return Promise.resolve(ctx).then(next);
 };
