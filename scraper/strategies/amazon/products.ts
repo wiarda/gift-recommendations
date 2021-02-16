@@ -16,7 +16,7 @@ import { loadStrategy, RunStrategy, ScrapedItem } from "../../scraper";
 export const PRODUCTS_SELECTOR = `div[data-asin]:not([data-asin=""])`;
 
 export type Product = ScrapedItem & {
-  asin: number;
+  asin: string;
   name: string;
   price: number | "NA";
   link: string;
