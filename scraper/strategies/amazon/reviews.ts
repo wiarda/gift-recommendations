@@ -1,5 +1,14 @@
 import cheerio from "cheerio";
-import { compose, either, invoker } from "ramda";
+import {
+  compose,
+  either,
+  invoker,
+  map,
+  objOf,
+  mergeAll,
+  prop,
+  split,
+} from "ramda";
 import {
   normalizeText,
   numberOrNA,
@@ -10,6 +19,7 @@ import {
   $prop,
   $text,
   $html,
+  $map,
 } from "../utils";
 import { Strategy } from "../types";
 import { loadStrategy, RunStrategy, ScrapedItem } from "../../scraper";
@@ -25,6 +35,18 @@ export type Review = ScrapedItem & {
   title: string;
   reviewBody: string;
   helpfulCount: number;
+};
+
+export type ReviewMeta = ScrapedItem & {
+  ratingsCount: number;
+  ratingsDistribution: {
+    1: string;
+    2: string;
+    3: string;
+    4: string;
+    5: string;
+  };
+  reviewsCount: number;
 };
 
 const amazonReviewStrategy: Strategy<Review> = {
@@ -65,3 +87,32 @@ export const checkForMoreReviews: (html: string) => boolean = (html) => {
 
   return $("div#cm_cr-pagination_bar li.a-last > a").length !== 0;
 };
+
+const amazonReviewMetadataStrategy: Strategy<ReviewMeta> = {
+  selector: () => "body",
+  ratingsCount: compose(
+    (x) => (console.log(`ratings`, x), x),
+    numberOrNA,
+    prop(0),
+    split(" | "),
+    $text("div#filter-info-section span")
+  ),
+  ratingsDistribution: compose(
+    mergeAll,
+    $map((el, idx) =>
+    compose(objOf(`${idx + 1}`), invoker(1, "prop")("aria-valuenow"))(el)
+    ),
+    select("table#histogramTable div[aria-valuenow]")
+  ),
+  reviewsCount: compose(
+    (x) => (console.log(`reviews`, x), x),
+    numberOrNA,
+    prop(1),
+    split(" | "),
+    $text("div#filter-info-section span")
+  ),
+};
+
+export const scrapeReviewsMeta: RunStrategy<ReviewMeta> = loadStrategy(
+  amazonReviewMetadataStrategy
+);
