@@ -30,6 +30,18 @@ export const $text = (selector: string) =>
 export const $html = (selector: string) =>
   compose(invoke("html"), select(selector));
 
+export const $map = (fn: (x: cheerio.Cheerio, idx: number) => unknown) => (
+  x: cheerio.Cheerio
+) => {
+  const results = [];
+  x.each((idx, el) => {
+    const a = fn(cheerio(el), idx);
+    results.push(a);
+  });
+
+  return results;
+};
+
 export const nthNode = (n: number) => compose(lift$, invoke("get", n));
 
 export const search = (selector: string) => (selection: cheerio.Cheerio) =>
