@@ -59,3 +59,9 @@ const amazonReviewStrategy: Strategy<Review> = {
 export const scrapeReviews: RunStrategy<Review> = loadStrategy(
   amazonReviewStrategy
 );
+
+export const checkForMoreReviews: (html: string) => boolean = (html) => {
+  const $ = cheerio.load(html);
+
+  return $("div#cm_cr-pagination_bar li.a-last > a").length !== 0;
+};
