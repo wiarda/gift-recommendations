@@ -1,8 +1,9 @@
-import { compose, head, either, converge, concat, flip } from "ramda";
+import cheerio from "cheerio";
+import { compose, either, invoker } from "ramda";
 import {
   normalizeText,
   numberOrNA,
-  normalizeProductLink,
+  normalizeNumber,
   invoke,
   fromStrategy,
   select,
@@ -13,7 +14,7 @@ import {
 import { Strategy } from "../types";
 import { loadStrategy, RunStrategy, ScrapedItem } from "../../scraper";
 
-const REVIEWS_SELECTOR = `.reviews-content > div > div`;
+const REVIEWS_SELECTOR = `div[data-hook="review"]`;
 
 export type Review = ScrapedItem & {
   reviewId: string;
@@ -38,17 +39,19 @@ const amazonReviewStrategy: Strategy<Review> = {
   rater: $text("span.a-profile-name"),
   rating: compose(
     numberOrNA,
-    parseFloat,
     $text(`i[data-hook="review-star-rating"] > span`)
   ),
   title: compose($text(`a[data-hook="review-title"] > span`)),
   reviewBody: compose(
     normalizeText,
-    $text(`div[data-hook="review-collapsed"] > span`)
+    either(
+      $text(`div[data-hook="review-collapsed"] > span`),
+      $text(`span[data-hook="review-body"] > span`)
+    )
   ),
   helpfulCount: compose(
     numberOrNA,
-    parseFloat,
+    invoker(2, "replace")("One", 1),
     $text(`span[data-hook="helpful-vote-statement"]`)
   ),
 };
