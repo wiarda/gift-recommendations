@@ -11,8 +11,12 @@ export type PageEffect<a, k> = (
   arg: k,
   arg2?: k
 ) => (x: State<Page, a>) => Promise<State<Page, a>>;
-export type PageAction<a> = (x: State<Page, a>) => Promise<State<Page, a>>;
+export type PageAction = (x: State<Page, ScrapeState>) => Promise<State<Page, ScrapeState>>;
 export type ViewportConfig = {
   width: number;
   height: number;
 };
+export type Loop<T> = (
+  condition: (x: State<Page, T>) => Promise<boolean>,
+  next: (x: State<Page, T>) => Promise<State<Page, T>>,
+) => (ctx: State<Page, T>) => Promise<State<Page, T>>;
