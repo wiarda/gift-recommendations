@@ -22,6 +22,7 @@ function startServer() {
   app.post("/listings", amazon.listings);
   app.post("/reviews", amazon.reviews);
   app.post("/productReviews", amazon.productReviews);
+  app.post("/allReviews", amazon.getAllReviews);
 
   refs.server = app.listen(PORT, () => {
     console.log(`Server listening on ${PORT}`);

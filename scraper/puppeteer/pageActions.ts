@@ -1,4 +1,4 @@
-import { prop, compose, path } from "ramda";
+import { prop, compose, path, merge } from "ramda";
 import { Page } from "puppeteer";
 import { RunStrategy } from "../scraper";
 import {
@@ -23,6 +23,7 @@ export const click: PageEffect<ScrapeState, string> = (selector) => async ([
     return [page, results];
   } catch (err) {
     // Can't find node to click
+    console.error(err.message);
     return [page, results];
   }
 };
@@ -134,11 +135,23 @@ export const extractWithStrategy: (strategy: RunStrategy<any>) => PageAction = (
   const html = await page.content();
   const url = await page.url();
 
-  results.store.push({ url, html });
+  const output: object[] = strategy(html).map(merge({ url }));
 
-  const output: object[] = strategy(html);
+  results.store.push(...output);
+  results.curr = output;
 
-  results.store.push(url, ...output);
+  return [page, results];
+};
+
+export const mergeWithStrategy: (
+  base: object,
+  strategy: RunStrategy<any>
+) => PageAction = (base, strategy) => async ([page, results]) => {
+  const html = await page.content();
+
+  const output: object[] = strategy(html).map(merge(base));
+
+  results.store.push(...output);
   results.curr = output;
 
   return [page, results];
