@@ -1,22 +1,13 @@
 import { Page } from "puppeteer";
 import { State } from "../puppeteer/state";
-import {
-  compose,
-  objOf,
-  merge,
-  path,
-  unary,
-  filter,
-  map,
-  prop,
-  equals,
-} from "ramda";
+import { compose, objOf, merge, path } from "ramda";
 import { Product, scrapeProducts } from "../strategies/amazon/products";
 import {
   scrapeReviews,
   Review,
   checkForMoreReviews,
   scrapeReviewsMeta,
+  setLastReview,
 } from "../strategies/amazon/reviews";
 import { page, chrome } from "../puppeteer/index";
 import { ScrapeState } from "../puppeteer/state";
@@ -25,12 +16,9 @@ import {
   lift,
   click,
   goto,
-  content,
   type,
   waitForSelector,
-  waitForTimeout,
   waitForRandTimeout,
-  configureViewport,
   extractWithStrategy,
   mergeWithStrategy,
   waitForDom,
@@ -41,6 +29,7 @@ import {
   loop,
   returnA,
   returnStore,
+  waitForNewContent,
 } from "../puppeteer/pageActions";
 import { PageQueue, wait, checkin } from "../task-manager/pageQueue";
 
@@ -151,24 +140,21 @@ async function getAllReviews(
   // add scrolling to element
   // https://stackoverflow.com/questions/51529332/puppeteer-scroll-down-until-you-cant-anymore
 
-  // sample: lots of reviews stroller - B00FZP3E8A
-  // not many reviews cupholder - B07BPZNBJV
-
   const getMoreReviews: (
     x: State<Page, ScrapeState>
   ) => Promise<State<Page, ScrapeState>> = (ctx) => {
-
     return Promise.resolve(ctx)
-      .then(waitForRandTimeout(500, 1200))
-      .then(waitForSelector("div#cm_cr-pagination_bar"))
       .then(tag(`getting reviews from page ${i}`))
       .then(saveHtml(`${asin}-reviews-page-${i++}`))
       .then(mergeWithStrategy(metaData, scrapeReviews))
       .then(writeToDb(`${asin}-reviews`))
-      .then(tag("continuing to next page"))
+      .then(setLastReview)
+      // help prevent throttling
+      .then(waitForRandTimeout(1600, 2400))
       .then(click("div#cm_cr-pagination_bar li.a-last > a"))
-      .then(waitForRandTimeout(2000, 3000));
-  }; 
+      .then(waitForNewContent)
+      .then(waitForSelector("div#cm_cr-pagination_bar"));
+  };
 
   return reviewPage
     .then(tag("Beginning review extraction"))
@@ -177,6 +163,7 @@ async function getAllReviews(
     .then(returnStore)
     .catch((e) => {
       const msg = `Err getting reviews for ${asin} at ${url}\n${e.message}`;
+      console.error(msg);
       state.db.write([msg], "errors");
       return [msg];
     }) as Promise<Array<Review>>;
@@ -237,4 +224,3 @@ export const amazon = {
     return res.status(200).send(JSON.stringify(results));
   },
 };
- 

@@ -1,4 +1,4 @@
-import { prop, compose, path, merge } from "ramda";
+import { prop, compose, path, merge, head } from "ramda";
 import { Page } from "puppeteer";
 import { RunStrategy } from "../scraper";
 import {
@@ -9,6 +9,7 @@ import {
   ViewportConfig,
   Loop,
 } from "./state";
+import { wait } from "../task-manager/pageQueue";
 
 export const lift: (
   state: ScrapeState
@@ -16,15 +17,19 @@ export const lift: (
 
 export const click: PageEffect<ScrapeState, string> = (selector) => async ([
   page,
-  results,
+  state,
 ]) => {
   try {
     await page.click(selector);
-    return [page, results];
+    return [page, state];
   } catch (err) {
     // Can't find node to click
     console.error(err.message);
-    return [page, results];
+
+    // invalidate references to current position that might be used for a loop
+    state.ref = undefined;
+    
+    return [page, state];
   }
 };
 
@@ -105,7 +110,7 @@ export const waitForRandTimeout: PageEffect<ScrapeState, number> = (
   high
 ) => async ([page, results]) => {
   const duration = low + Math.floor(Math.random() * (high - low + 1));
-  console.log({ duration });
+
   await page.waitForTimeout(duration);
   return [page, results];
 };
@@ -188,8 +193,27 @@ export const testContent: (
 
 export const loop: Loop<ScrapeState> = (condition, next) => async (ctx) => {
   if (await condition(ctx)) {
-    return Promise.resolve(ctx).then(next).then(loop(condition, next));
+    return Promise.resolve(ctx)
+      .then(next)
+      .then(loop(condition, next));
   }
 
   return Promise.resolve(ctx).then(next);
+};
+
+export const waitForNewContent: PageAction = async ([page, state]) => {
+  const { ref: selector } = state;
+  if (selector === undefined) return [page, state];
+
+  while (true) {
+    const html = await page.content();
+    if (!html.includes(selector)) {
+      break;
+    }
+    await wait(100);
+  }
+
+  state.ref = undefined;
+  await wait(50);
+  return [page, state];
 };

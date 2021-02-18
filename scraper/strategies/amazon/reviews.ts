@@ -3,7 +3,7 @@ import {
   compose,
   either,
   invoker,
-  map,
+  head,
   objOf,
   mergeAll,
   prop,
@@ -23,6 +23,8 @@ import {
 } from "../utils";
 import { Strategy } from "../types";
 import { loadStrategy, RunStrategy, ScrapedItem } from "../../scraper";
+import { PageAction } from "../../puppeteer/state";
+
 
 const REVIEWS_SELECTOR = `div[data-hook="review"]`;
 
@@ -85,7 +87,18 @@ export const scrapeReviews: RunStrategy<Review> = loadStrategy(
 export const checkForMoreReviews: (html: string) => boolean = (html) => {
   const $ = cheerio.load(html);
 
+  
+  console.log("Looking for nav bar:", $("div#cm_cr-pagination_bar li.a-last > a").length)
+
   return $("div#cm_cr-pagination_bar li.a-last > a").length !== 0;
+};
+
+export const setLastReview: PageAction = async ([page, state]) => {
+  const { curr } = state;
+  const id = head(curr)?.reviewId;
+  state.ref = id ? `id="${id}"` : undefined;
+
+  return [page, state];
 };
 
 const amazonReviewMetadataStrategy: Strategy<ReviewMeta> = {
@@ -100,7 +113,7 @@ const amazonReviewMetadataStrategy: Strategy<ReviewMeta> = {
   ratingsDistribution: compose(
     mergeAll,
     $map((el, idx) =>
-    compose(objOf(`${idx + 1}`), invoker(1, "prop")("aria-valuenow"))(el)
+      compose(objOf(`${idx + 1}`), invoker(1, "prop")("aria-valuenow"))(el)
     ),
     select("table#histogramTable div[aria-valuenow]")
   ),

@@ -6,6 +6,7 @@ export type ScrapeState = {
   db: Db;
   curr: Array<unknown>;
   store: Array<unknown>;
+  ref?: any;
 };
 export type PageEffect<a, k> = (
   arg: k,
